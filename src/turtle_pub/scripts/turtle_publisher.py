@@ -1,49 +1,46 @@
 #!/usr/bin/env python3
-
+from _future_ import print_function
 import rospy
 from geometry_msgs.msg import Twist
-from turtlesim.srv import TeleportAbsolute, TeleportAbsoluteRequest
-from DrawCircle.srv import DrawCircle, DrawCircleResponse
+from turtle_pub.srv import myfinalservices
+from turtlesim.srv import TeleportAbsolute
 
-def draw_circle(req):
-    rospy.wait_for_service('turtle1/teleport_absolute')
+    
+def teleport_turtle(x, y):
     try:
-        teleport_service = rospy.ServiceProxy('turtle1/teleport_absolute', TeleportAbsolute)
-        teleport_request = TeleportAbsoluteRequest()
-        teleport_request.x = req.x
-        teleport_request.y = req.y
-        teleport_request.theta = 0
-        teleport_service(teleport_request)
+        teleport = rospy.ServiceProxy('turtle1/teleport_absolute', TeleportAbsolute)
+        teleport(x, y, 0)
     except rospy.ServiceException as e:
-        rospy.logerr("Service call failed: %s" % e)
-        return DrawCircleResponse(success=False)
-    
-    pub = rospy.Publisher('turtle1/cmd_vel', Twist, queue_size=10)
-    rospy.sleep(1)
-    
-    move_cmd = Twist()
-    move_cmd.linear.x = req.radius
-    move_cmd.angular.z = 0.0
-    pub.publish(move_cmd)
-    rospy.sleep(1)
-    
-    move_cmd.linear.x = 0.0
-    move_cmd.angular.z = 1.0
-    pub.publish(move_cmd)
-    
-    circle_duration = 2 * 3.14159 * req.radius / 1.0
-    rospy.sleep(circle_duration)
-    
-    move_cmd.angular.z = 0.0
-    pub.publish(move_cmd)
-    
-    return DrawCircleResponse(success=True)
+        print(f"Service call failed: {e}")
 
-def draw_circle_server():
-    rospy.init_node('draw_circle_server')
-    s = rospy.Service('draw_circle', DrawCircle, draw_circle)
-    rospy.loginfo("Ready to draw circle.")
-    rospy.spin()
+def turtle_controller(radius):
+    pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
+    rate = rospy.Rate(10)  # Control rate: 10 Hz
+    while not rospy.is_shutdown():
+        msg = Twist()
+        rospy.sleep(1)
+        msg.linear.x = radius 
+        pub.publish(msg)
+        rospy.sleep(2)
+        msg.linear.x= 0
+        msg.angular.z =1.57
+        pub.publish(msg)
+        rospy.sleep(2)
+        msg.linear.x = 2*3.14*radius
+        msg.angular.z = 2*3.14
+        pub.publish(msg)
+        rospy.sleep()
+        rate.sleep()
 
-if __name__ == "__main__":
-    draw_circle_server()
+def teleporting_now(req):
+     teleport_turtle(req.x ,req.y)
+     turtle_controller(req.radius)
+
+def teleporting_server():
+       rospy.init_node('add_two_ints_server')
+       s = rospy.Service('MERI_SERVICE', myfinalservices, teleporting_now)
+       print("READY FOR THE INPUT FROM USER")
+       rospy.spin()
+   
+if _name_ == "_main_":
+   teleporting_server()
